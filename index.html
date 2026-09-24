@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Contract vs Permanent Calculator</title>
+<style>
+:root{--bg:#0b1020;--card:#151c31;--muted:#9aa8c7;--text:#f5f7ff;--line:#2a3555;--good:#5ee0a0;--accent:#7aa2ff}
+*{box-sizing:border-box} body{margin:0;background:linear-gradient(135deg,#090d19,#10172b);color:var(--text);font:15px system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+.wrap{max-width:1180px;margin:auto;padding:32px 20px 60px}.hero h1{font-size:38px;margin:0 0 8px}.hero p{color:var(--muted);margin:0 0 26px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.card{background:rgba(21,28,49,.94);border:1px solid var(--line);border-radius:18px;padding:20px}
+h2{font-size:20px;margin:0 0 18px}label{display:grid;grid-template-columns:1fr 145px;gap:12px;align-items:center;margin:11px 0;color:#dfe6fa}
+input{width:100%;background:#0c1326;color:white;border:1px solid #344264;border-radius:9px;padding:10px 11px;font-size:15px}
+small,.note{color:var(--muted)}.results{margin-top:18px;display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.metric{background:#0d1428;border:1px solid var(--line);border-radius:14px;padding:15px}.metric span{display:block;color:var(--muted);font-size:12px;margin-bottom:7px}.metric b{font-size:21px}
+.wide{grid-column:1/-1}.comparison{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:18px}
+table{width:100%;border-collapse:collapse}td,th{padding:11px 8px;border-bottom:1px solid var(--line);text-align:right}td:first-child,th:first-child{text-align:left}th{color:var(--muted)}
+.good{color:var(--good)}.accent{color:var(--accent)}.footer{margin-top:20px;color:#d7def0;font-size:16px;line-height:1.75}
+@media(max-width:800px){.grid,.comparison{grid-template-columns:1fr}.results{grid-template-columns:1fr 1fr}.hero h1{font-size:30px}}
+</style>
+</head>
+<body><div class="wrap">
+<div class="hero"><h1>Contract vs Permanent</h1><p>UK comparison calibrated to your PayStream £600/day payslips.</p></div>
+<div class="grid">
+<section class="card"><h2>Contract</h2>
+<label>Day rate (£)<input id="rate" type="number" value="600" step="25"></label>
+<label>Days per week<input id="days" type="number" value="5" min="0" max="7" step=".5"></label>
+<label>Weeks worked per year<input id="weeks" type="number" value="46" min="1" max="52" step="1"></label>
+<label>Umbrella margin / week (£)<input id="margin" type="number" value="24.50" step=".5"></label>
+<div class="note"><b>January 2027 Self Assessment balancing payment: £5,133.25.</b> This is shown for cash-flow planning only and is not deducted again here, because the annual tax calculation already estimates your full income-tax liability.</div>
+<div class="note">Calibration: a £3,000 five-day week produced £2,588.66 taxable gross and £1,704.43 net on your recent non-pension payslip.</div>
+</section>
+<section class="card"><h2>Permanent</h2>
+<label>Annual salary (£)<input id="salary" type="number" value="92000" step="1000"></label>
+<label>Employer pension (%)<input id="pension" type="number" value="5" step=".5"></label>
+<label>Annual bonus (£)<input id="bonus" type="number" value="0" step="500"></label>
+<label>Other benefits value (£)<input id="benefits" type="number" value="0" step="500"></label>
+<div class="note">Permanent PAYE uses a simplified England/Wales/NI 2026/27 model, including personal allowance taper above £100k.</div>
+</section>
+</div>
+
+
+<section class="card" style="margin-top:18px;border-color:#4665a8">
+  <h2>1. Your Contract Position</h2>
+  <div class="results">
+    <div class="metric"><span>Annual contract billing</span><b id="bill"></b></div>
+    <div class="metric"><span>Taxable gross</span><b id="cgross"></b></div>
+    <div class="metric"><span>Estimated annual take-home</span><b id="cnet" class="accent"></b></div>
+    <div class="metric"><span>Jan 2027 balancing payment (cash-flow only)</span><b>£5,133</b></div>
+    <div class="metric"><span>Monthly take-home</span><b id="cmonth"></b></div>
+    <div class="metric"><span>Weekly take-home (working week)</span><b id="cweek"></b></div>
+  </div>
+</section>
+
+<section class="card" style="margin-top:18px;border-color:#3d7d63">
+  <h2>2. Permanent Offer You're Comparing</h2>
+  <div class="results">
+    <div class="metric"><span>Salary + cash bonus</span><b id="pgross"></b></div>
+    <div class="metric"><span>Annual take-home</span><b id="pnet" class="accent"></b></div>
+    <div class="metric"><span>Monthly take-home</span><b id="pmonth"></b></div>
+    <div class="metric"><span>Weekly take-home</span><b id="pweek"></b></div>
+    <div class="metric"><span>Employer pension value</span><b id="tpen"></b></div>
+    <div class="metric"><span>Total package value</span><b id="package"></b></div>
+  </div>
+</section>
+
+<section class="card" style="margin-top:18px;border:2px solid #5ee0a0">
+  <h2>3. Permanent Role Needed to Match Your Contract</h2>
+  <p class="note">This works backwards from your contract take-home. It answers: “What permanent salary would give me the same cash in my pocket?”</p>
+  <div class="results">
+    <div class="metric"><span>Required permanent base salary</span><b id="breakeven" class="good"></b></div>
+    <div class="metric"><span>Matching annual net</span><b id="eqannual"></b></div>
+    <div class="metric"><span>Matching monthly net</span><b id="eqmonth"></b></div>
+    <div class="metric"><span>Matching weekly net</span><b id="eqweek"></b></div>
+    <div class="metric"><span>Pension value at equivalent salary</span><b id="eqpension"></b></div>
+    <div class="metric"><span>Equivalent total package</span><b id="eqpackage"></b></div>
+  </div>
+  <div id="matchSentence" style="margin-top:16px;padding:16px;border-radius:12px;background:#0d1428;font-size:18px;line-height:1.5"></div>
+</section>
+
+<section class="card" style="margin-top:18px">
+  <h2>4. Simple Cash Comparison</h2>
+  <table>
+    <tr><th></th><th>Contract</th><th>Permanent offer</th></tr>
+    <tr><td>Annual take-home</td><td id="tcnet"></td><td id="tpnet"></td></tr>
+    <tr><td>Monthly take-home</td><td id="tcmonth"></td><td id="tpmonth"></td></tr>
+    <tr><td>Weekly take-home</td><td id="tcweek"></td><td id="tpweek"></td></tr>
+    <tr><td>Annual take-home difference</td><td colspan="2" id="diff"></td></tr>
+  </table>
+</section>
+<section class="card wide" style="margin-top:18px"><h2>Assumptions</h2>
+<div class="footer">
+The umbrella model is calibrated from your actual £600/day PayStream reconciliation: £3,000 umbrella income, £24.50 weekly margin, £373.90 employer NI, £12.94 apprenticeship levy and £2,588.66 taxable employment income. For different day rates it models employer NI at 15% above a weekly secondary threshold of £96 and levy at 0.5% of taxable gross. It assumes no salary-sacrifice pension on the contract side. PAYE estimates use a simplified annual calculation and may differ slightly from payroll because payroll is cumulative/weekly and rounding applies. Your £5,133.25 January 2027 Self Assessment balancing payment is treated as a cash-flow settlement of 2025/26 tax already represented by the annual income-tax calculation, so it is not deducted a second time from contract take-home. This is a comparison tool, not tax advice.
+</div></section>
+</div>
+<script>
+const $=id=>document.getElementById(id), gbp=n=>new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP',maximumFractionDigits:0}).format(n);
+function pa(income){return Math.max(0,12570-Math.max(0,income-100000)/2)}
+function incomeTax(income){
+ let a=pa(income), taxable=Math.max(0,income-a), tax=0;
+ let basic=Math.min(taxable,37700); tax+=basic*.20; taxable-=basic;
+ let higher=Math.min(Math.max(0,taxable),87440); tax+=higher*.40; taxable-=higher;
+ tax+=Math.max(0,taxable)*.45; return tax;
+}
+function employeeNI(income){
+ let x=Math.max(0,income-12570), main=Math.min(x,50270-12570);
+ return main*.08+Math.max(0,x-main)*.02;
+}
+function netAnnual(gross){return gross-incomeTax(gross)-employeeNI(gross)}
+function umbrellaGross(weeklyIncome,margin){
+ // Solve gross + employer NI + levy + margin = umbrella income
+ // Employer NI: 15% of gross above £96 weekly; levy: 0.5% gross.
+ let g=(weeklyIncome-margin+14.4)/1.155;
+ return Math.max(0,g);
+}
+function calc(){
+ let rate=+rateEl.value, days=+daysEl.value, weeks=+weeksEl.value, margin=+marginEl.value;
+ let weekly=rate*days, billing=weekly*weeks, wg=umbrellaGross(weekly,margin), cg=wg*weeks;
+ let cn=netAnnual(cg);
+
+ let sal=+salaryEl.value, bonus=+bonusEl.value, pensionPct=+pensionEl.value/100, benefits=+benefitsEl.value;
+ let pg=sal+bonus, pn=netAnnual(pg), pen=sal*pensionPct, pack=pg+pen+benefits;
+
+ $('bill').textContent=gbp(billing);
+ $('cgross').textContent=gbp(cg);
+ $('cnet').textContent=gbp(cn);
+ $('cmonth').textContent=gbp(cn/12);
+ $('cweek').textContent=gbp(cn/weeks);
+
+ $('pgross').textContent=gbp(pg);
+ $('pnet').textContent=gbp(pn);
+ $('pmonth').textContent=gbp(pn/12);
+ $('pweek').textContent=gbp(pn/52);
+ $('tpen').textContent=gbp(pen);
+ $('package').textContent=gbp(pack);
+
+ $('tcnet').textContent=gbp(cn);
+ $('tcmonth').textContent=gbp(cn/12);
+ $('tcweek').textContent=gbp(cn/weeks);
+ $('tpnet').textContent=gbp(pn);
+ $('tpmonth').textContent=gbp(pn/12);
+ $('tpweek').textContent=gbp(pn/52);
+
+ let d=cn-pn;
+ $('diff').textContent=(d>=0?'+':'')+gbp(d)+(d>=0?' in favour of contract':' in favour of permanent');
+
+ // Required BASE salary, while retaining the entered bonus.
+ let lo=0,hi=350000;
+ for(let i=0;i<80;i++){
+   let mid=(lo+hi)/2;
+   if(netAnnual(mid+bonus)<cn) lo=mid; else hi=mid;
+ }
+ let eqSalary=(lo+hi)/2;
+ let eqPension=eqSalary*pensionPct;
+ let eqPackage=eqSalary+bonus+eqPension+benefits;
+
+ $('breakeven').textContent=gbp(eqSalary);
+ $('eqannual').textContent=gbp(cn);
+ $('eqmonth').textContent=gbp(cn/12);
+ $('eqweek').textContent=gbp(cn/52);
+ $('eqpension').textContent=gbp(eqPension);
+ $('eqpackage').textContent=gbp(eqPackage);
+ $('matchSentence').innerHTML=
+   'At <b>'+gbp(rate)+'/day</b> for <b>'+weeks+' working weeks</b>, your estimated contract take-home is <b>'+gbp(cn)+'/year</b>. The £5,133.25 January 2027 Self Assessment balancing payment is not deducted again because the tax model already estimates the full annual income-tax liability. '+
+   'A permanent role would need a base salary of about <b class="good">'+gbp(eqSalary)+'</b>'+
+   (bonus>0?' plus the entered '+gbp(bonus)+' bonus':'')+
+   ' to produce approximately the same annual take-home. With the entered pension and benefits, that permanent package would be worth about <b>'+gbp(eqPackage)+'</b>.';
+}
+const rateEl=$('rate'),daysEl=$('days'),weeksEl=$('weeks'),marginEl=$('margin'),salaryEl=$('salary'),pensionEl=$('pension'),bonusEl=$('bonus'),benefitsEl=$('benefits');
+document.querySelectorAll('input').forEach(x=>x.addEventListener('input',calc)); calc();
+</script></body></html>
