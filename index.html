@@ -27,7 +27,8 @@ table{width:100%;border-collapse:collapse}td,th{padding:11px 8px;border-bottom:1
 <label>Days per week<input id="days" type="number" value="5" min="0" max="7" step=".5"></label>
 <label>Weeks worked per year<input id="weeks" type="number" value="46" min="1" max="52" step="1"></label>
 <label>Umbrella margin / week (£)<input id="margin" type="number" value="24.50" step=".5"></label>
-<div class="note"><b>January 2027 Self Assessment balancing payment: £5,133.25.</b> This is shown for cash-flow planning only and is not deducted again here, because the annual tax calculation already estimates your full income-tax liability.</div>
+<label>PAYE tax code<input id="taxcode" type="text" value="1257L" maxlength="10"></label>
+<div class="note"><b>Dynamic year-end tax estimate.</b> The calculator estimates PAYE withheld from the tax code and compares it with final annual Income Tax. A positive balance means an estimated balancing payment; a negative balance means an estimated refund. This is cash-flow information only and is not deducted again from annual take-home.</div>
 <div class="note">Calibration: a £3,000 five-day week produced £2,588.66 taxable gross and £1,704.43 net on your recent non-pension payslip.</div>
 </section>
 <section class="card"><h2>Permanent</h2>
@@ -46,7 +47,9 @@ table{width:100%;border-collapse:collapse}td,th{padding:11px 8px;border-bottom:1
     <div class="metric"><span>Annual contract billing</span><b id="bill"></b></div>
     <div class="metric"><span>Taxable gross</span><b id="cgross"></b></div>
     <div class="metric"><span>Estimated annual take-home</span><b id="cnet" class="accent"></b></div>
-    <div class="metric"><span>Jan 2027 balancing payment (cash-flow only)</span><b>£5,133</b></div>
+    <div class="metric"><span>Estimated final Income Tax</span><b id="finaltax"></b></div>
+    <div class="metric"><span>Estimated PAYE deducted</span><b id="payededucted"></b></div>
+    <div class="metric"><span>Estimated year-end tax position</span><b id="yearend"></b></div>
     <div class="metric"><span>Monthly take-home</span><b id="cmonth"></b></div>
     <div class="metric"><span>Weekly take-home (working week)</span><b id="cweek"></b></div>
   </div>
@@ -90,7 +93,7 @@ table{width:100%;border-collapse:collapse}td,th{padding:11px 8px;border-bottom:1
 </section>
 <section class="card wide" style="margin-top:18px"><h2>Assumptions</h2>
 <div class="footer">
-The umbrella model is calibrated from your actual £600/day PayStream reconciliation: £3,000 umbrella income, £24.50 weekly margin, £373.90 employer NI, £12.94 apprenticeship levy and £2,588.66 taxable employment income. For different day rates it models employer NI at 15% above a weekly secondary threshold of £96 and levy at 0.5% of taxable gross. It assumes no salary-sacrifice pension on the contract side. PAYE estimates use a simplified annual calculation and may differ slightly from payroll because payroll is cumulative/weekly and rounding applies. Your £5,133.25 January 2027 Self Assessment balancing payment is treated as a cash-flow settlement of 2025/26 tax already represented by the annual income-tax calculation, so it is not deducted a second time from contract take-home. This is a comparison tool, not tax advice.
+The umbrella model is calibrated from a £600/day PayStream reconciliation. For different day rates it models employer NI at 15% above a weekly secondary threshold of £96 and the Apprenticeship Levy at 0.5% of taxable gross. It assumes no salary-sacrifice pension on the contract side. The 2026/27 England/Wales/Northern Ireland tax model uses the £12,570 standard Personal Allowance, the £100,000 Personal Allowance taper, 20% / 40% / 45% Income Tax bands, and standard employee NI rates. The year-end tax position compares estimated final annual Income Tax with estimated PAYE withheld using the entered tax-code allowance. It supports ordinary positive numeric L-type codes such as 1257L. Special/K/BR/D0/D1/NT codes, Scottish rates, taxable benefits, untaxed income and in-year code changes require more detailed payroll modelling. Real PAYE is cumulative and payroll rounding/timing can create differences. The estimated balancing payment or refund is cash-flow information only and is not deducted again from annual take-home. This is an estimate, not tax advice.
 </div></section>
 </div>
 <script>
@@ -101,6 +104,21 @@ function incomeTax(income){
  let basic=Math.min(taxable,37700); tax+=basic*.20; taxable-=basic;
  let higher=Math.min(Math.max(0,taxable),87440); tax+=higher*.40; taxable-=higher;
  tax+=Math.max(0,taxable)*.45; return tax;
+}
+function taxCodeAllowance(code){
+ code=(code||'').toUpperCase().replace(/\s+/g,'');
+ let m=code.match(/^(\d+)L$/);
+ if(!m) return null;
+ return Math.max(0,parseInt(m[1],10)*10+9);
+}
+function taxUsingCode(income,code){
+ let allowance=taxCodeAllowance(code);
+ if(allowance===null) return incomeTax(income);
+ let taxable=Math.max(0,income-allowance), tax=0;
+ let basic=Math.min(taxable,37700); tax+=basic*.20; taxable-=basic;
+ let higher=Math.min(Math.max(0,taxable),87440); tax+=higher*.40; taxable-=higher;
+ tax+=Math.max(0,taxable)*.45;
+ return tax;
 }
 function employeeNI(income){
  let x=Math.max(0,income-12570), main=Math.min(x,50270-12570);
@@ -117,6 +135,10 @@ function calc(){
  let rate=+rateEl.value, days=+daysEl.value, weeks=+weeksEl.value, margin=+marginEl.value;
  let weekly=rate*days, billing=weekly*weeks, wg=umbrellaGross(weekly,margin), cg=wg*weeks;
  let cn=netAnnual(cg);
+ let code=taxcodeEl.value;
+ let finalTax=incomeTax(cg);
+ let payeDeducted=taxUsingCode(cg,code);
+ let yearEnd=finalTax-payeDeducted;
 
  let sal=+salaryEl.value, bonus=+bonusEl.value, pensionPct=+pensionEl.value/100, benefits=+benefitsEl.value;
  let pg=sal+bonus, pn=netAnnual(pg), pen=sal*pensionPct, pack=pg+pen+benefits;
@@ -126,6 +148,10 @@ function calc(){
  $('cnet').textContent=gbp(cn);
  $('cmonth').textContent=gbp(cn/12);
  $('cweek').textContent=gbp(cn/weeks);
+ $('finaltax').textContent=gbp(finalTax);
+ $('payededucted').textContent=gbp(payeDeducted);
+ $('yearend').textContent = yearEnd > 1 ? gbp(yearEnd)+' to pay' : yearEnd < -1 ? gbp(Math.abs(yearEnd))+' refund' : 'About £0';
+ $('yearend').className = yearEnd <= 1 ? 'good' : '';
 
  $('pgross').textContent=gbp(pg);
  $('pnet').textContent=gbp(pn);
@@ -161,11 +187,11 @@ function calc(){
  $('eqpension').textContent=gbp(eqPension);
  $('eqpackage').textContent=gbp(eqPackage);
  $('matchSentence').innerHTML=
-   'At <b>'+gbp(rate)+'/day</b> for <b>'+weeks+' working weeks</b>, your estimated contract take-home is <b>'+gbp(cn)+'/year</b>. The £5,133.25 January 2027 Self Assessment balancing payment is not deducted again because the tax model already estimates the full annual income-tax liability. '+
+   'At <b>'+gbp(rate)+'/day</b> for <b>'+weeks+' working weeks</b>, your estimated contract take-home is <b>'+gbp(cn)+'/year</b>. With tax code <b>'+code.toUpperCase()+'</b>, the estimated year-end Income Tax position is <b>'+(yearEnd>1?gbp(yearEnd)+' to pay':yearEnd<-1?gbp(Math.abs(yearEnd))+' refund':'about £0')+'</b>. This is not deducted again because annual take-home already uses the final annual tax liability. '+
    'A permanent role would need a base salary of about <b class="good">'+gbp(eqSalary)+'</b>'+
    (bonus>0?' plus the entered '+gbp(bonus)+' bonus':'')+
    ' to produce approximately the same annual take-home. With the entered pension and benefits, that permanent package would be worth about <b>'+gbp(eqPackage)+'</b>.';
 }
-const rateEl=$('rate'),daysEl=$('days'),weeksEl=$('weeks'),marginEl=$('margin'),salaryEl=$('salary'),pensionEl=$('pension'),bonusEl=$('bonus'),benefitsEl=$('benefits');
+const rateEl=$('rate'),daysEl=$('days'),weeksEl=$('weeks'),marginEl=$('margin'),taxcodeEl=$('taxcode'),salaryEl=$('salary'),pensionEl=$('pension'),bonusEl=$('bonus'),benefitsEl=$('benefits');
 document.querySelectorAll('input').forEach(x=>x.addEventListener('input',calc)); calc();
 </script></body></html>
