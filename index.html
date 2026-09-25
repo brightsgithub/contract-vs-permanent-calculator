@@ -84,11 +84,11 @@ table{width:100%;border-collapse:collapse}td,th{padding:11px 8px;border-bottom:1
 <section class="card" style="margin-top:18px">
   <h2>4. Simple Cash Comparison</h2>
   <table>
-    <tr><th></th><th>Contract</th><th>Permanent offer</th></tr>
-    <tr><td>Annual take-home</td><td id="tcnet"></td><td id="tpnet"></td></tr>
-    <tr><td>Monthly take-home</td><td id="tcmonth"></td><td id="tpmonth"></td></tr>
-    <tr><td>Weekly take-home</td><td id="tcweek"></td><td id="tpweek"></td></tr>
-    <tr><td>Annual take-home difference</td><td colspan="2" id="diff"></td></tr>
+    <tr><th></th><th>Contract</th><th>Permanent offer</th><th>Difference</th></tr>
+    <tr><td>Annual take-home</td><td id="tcnet"></td><td id="tpnet"></td><td id="tdannual"></td></tr>
+    <tr><td>Monthly take-home</td><td id="tcmonth"></td><td id="tpmonth"></td><td id="tdmonth"></td></tr>
+    <tr><td>Weekly take-home</td><td id="tcweek"></td><td id="tpweek"></td><td id="tdweek"></td></tr>
+    <tr><td>Annual take-home difference</td><td colspan="3" id="diff"></td></tr>
   </table>
 </section>
 <section class="card wide" style="margin-top:18px"><h2>Assumptions</h2>
@@ -166,6 +166,15 @@ function calc(){
  $('tpnet').textContent=gbp(pn);
  $('tpmonth').textContent=gbp(pn/12);
  $('tpweek').textContent=gbp(pn/52);
+
+ const setDifference=(id,contractValue,permanentValue)=>{
+   const delta=permanentValue-contractValue;
+   $(id).textContent = (delta>0?'+':'') + gbp(delta);
+   $(id).title = delta>0 ? 'Permanent pays more' : delta<0 ? 'Contract pays more' : 'No difference';
+ };
+ setDifference('tdannual',cn,pn);
+ setDifference('tdmonth',cn/12,pn/12);
+ setDifference('tdweek',cn/weeks,pn/52);
 
  let d=cn-pn;
  $('diff').textContent=(d>=0?'+':'')+gbp(d)+(d>=0?' in favour of contract':' in favour of permanent');
